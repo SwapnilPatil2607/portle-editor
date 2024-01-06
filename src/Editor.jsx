@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Editor } from "react-draft-wysiwyg";
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
 import { convertFromRaw, convertToRaw, EditorState, Modifier } from "draft-js";
@@ -14,7 +14,6 @@ function MyEditor() {
 
   const onEditorStateChange = (editorState) => {
     const contentState = editorState.getCurrentContent();
-
     const selection = editorState.getSelection();
     const key = selection.getStartKey();
     const block = contentState.getBlockForKey(key);
@@ -31,7 +30,7 @@ function MyEditor() {
     const underline =
       block.getText().split(" ")[0] === "***" &&
       block.getText().split(" ").length >= 2;
-    console.log(headerType, boldType, underline);
+
     if (headerType) {
       const makeHeader = block.set("type", "header-one");
       const newBlock = makeHeader.set("text", block.getText().split("# ")[1]);
@@ -44,10 +43,9 @@ function MyEditor() {
         EditorState.push(editorState, newContentState, "change-block-type")
       );
     } else if (boldType) {
-      const newBlock = block.set("text", block.getText().split("* ")[1]);
       const newContentState = Modifier.applyInlineStyle(
         contentState.merge({
-          blockMap: contentState.getBlockMap().set(key, newBlock),
+          blockMap: contentState.getBlockMap().set(key, block),
         }),
         selection.merge({
           anchorOffset: 0,
@@ -64,10 +62,9 @@ function MyEditor() {
 
       setEditorState(newEditorState);
     } else if (underline) {
-      const newBlock = block.set("text", block.getText().split("*** ")[1]);
       const newContentState = Modifier.applyInlineStyle(
         contentState.merge({
-          blockMap: contentState.getBlockMap().set(key, newBlock),
+          blockMap: contentState.getBlockMap().set(key, block),
         }),
         selection.merge({
           anchorOffset: 0,
@@ -84,16 +81,15 @@ function MyEditor() {
 
       setEditorState(newEditorState);
     } else if (colorRedText) {
-      const newBlock = block.set("text", block.getText().split("** ")[1]);
       const newContentState = Modifier.applyInlineStyle(
         contentState.merge({
-          blockMap: contentState.getBlockMap().set(key, newBlock),
+          blockMap: contentState.getBlockMap().set(key, block),
         }),
         selection.merge({
           anchorOffset: 0,
           focusOffset: block.getLength(),
         }),
-        "red"
+        "COLOR_RED"
       );
 
       const newEditorStateWithRedText = EditorState.push(
@@ -120,6 +116,13 @@ function MyEditor() {
     localStorage.setItem("draftContent", serializedContent);
   };
 
+  const onClear = () => {
+    setEditorState(EditorState.createEmpty());
+    const contentState = editorState.getCurrentContent();
+    const serializedContent = JSON.stringify(convertToRaw(contentState));
+    localStorage.setItem("draftContent", serializedContent);
+  };
+
   return (
     <>
       <div
@@ -135,10 +138,7 @@ function MyEditor() {
         >
           Save
         </button>
-        <button
-          onClick={() => setEditorState(EditorState.createEmpty())}
-          style={{ padding: "10px 40px" }}
-        >
+        <button onClick={() => onClear()} style={{ padding: "10px 40px" }}>
           Clear
         </button>
       </div>
