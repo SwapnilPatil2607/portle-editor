@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Editor } from "react-draft-wysiwyg";
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
-import { EditorState, Modifier } from "draft-js";
+import { convertFromRaw, convertToRaw, EditorState, Modifier } from "draft-js";
 import "draft-js/dist/Draft.css";
 
 function MyEditor() {
-  const [editorState, setEditorState] = useState(() =>
-    EditorState.createEmpty()
-  );
+  const [editorState, setEditorState] = useState(() => {
+    const savedContent = localStorage.getItem("draftContent");
+    return savedContent
+      ? EditorState.createWithContent(convertFromRaw(JSON.parse(savedContent)))
+      : EditorState.createEmpty();
+  });
 
   const onEditorStateChange = (editorState) => {
     const contentState = editorState.getCurrentContent();
@@ -81,8 +84,11 @@ function MyEditor() {
 
       setEditorState(newEditorState);
     } else if (colorRedText) {
+      const newBlock = block.set("text", block.getText().split("** ")[1]);
       const newContentState = Modifier.applyInlineStyle(
-        contentState,
+        contentState.merge({
+          blockMap: contentState.getBlockMap().set(key, newBlock),
+        }),
         selection.merge({
           anchorOffset: 0,
           focusOffset: block.getLength(),
@@ -108,12 +114,40 @@ function MyEditor() {
     },
   };
 
+  const saveState = () => {
+    const contentState = editorState.getCurrentContent();
+    const serializedContent = JSON.stringify(convertToRaw(contentState));
+    localStorage.setItem("draftContent", serializedContent);
+  };
+
   return (
-    <Editor
-      editorState={editorState}
-      customStyleMap={customStyleMap}
-      onEditorStateChange={onEditorStateChange}
-    />
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "end",
+          padding: "10px",
+        }}
+      >
+        <button
+          onClick={() => saveState()}
+          style={{ padding: "10px 40px", marginRight: "10px" }}
+        >
+          Save
+        </button>
+        <button
+          onClick={() => setEditorState(EditorState.createEmpty())}
+          style={{ padding: "10px 40px" }}
+        >
+          Clear
+        </button>
+      </div>
+      <Editor
+        editorState={editorState}
+        customStyleMap={customStyleMap}
+        onEditorStateChange={onEditorStateChange}
+      />
+    </>
   );
 }
 

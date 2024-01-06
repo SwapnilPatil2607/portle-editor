@@ -11,7 +11,7 @@ function App() {
       <div
         style={{
           border: "1px solid black",
-          height: "300px",
+          height: "500px",
           overflow: "scroll",
         }}
       >
