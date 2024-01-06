@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Editor } from "react-draft-wysiwyg";
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
-import { EditorState, convertToRaw, Modifier } from "draft-js";
+import { EditorState, convertToRaw, Modifier, SelectionState } from "draft-js";
 import "draft-js/dist/Draft.css";
 
 function MyEditor() {
@@ -9,17 +9,14 @@ function MyEditor() {
     EditorState.createEmpty()
   );
   const onEditorStateChange = (editorState) => {
-    console.log(convertToRaw(editorState.getCurrentContent()));
-
     const contentState = editorState.getCurrentContent();
 
     const selection = editorState.getSelection();
     const key = selection.getStartKey();
     const block = contentState.getBlockForKey(key);
 
-    console.log(block.getText());
     const headerType = block.getText().split("# ").length === 2;
-    console.log(headerType);
+    const boldType = block.getText().split("* ").length === 2;
 
     if (headerType) {
       const makeHeader = block.set("type", "header-one");
@@ -32,6 +29,28 @@ function MyEditor() {
       setEditorState(
         EditorState.push(editorState, newContentState, "change-block-type")
       );
+    } else if (boldType) {
+      const newBlock = block.set("text", block.getText().split("* ")[1]);
+      const newContentState = Modifier.applyInlineStyle(
+        contentState.merge({
+          blockMap: contentState.getBlockMap().set(key, newBlock),
+        }),
+        selection.merge({
+          anchorOffset: 0,
+          focusOffset: block.getLength(),
+        }),
+        "BOLD"
+      );
+
+      // Create a new EditorState with the modified content
+      const newEditorState = EditorState.push(
+        editorState,
+        newContentState,
+        "bold-current-block"
+      );
+
+      // Update the state with the new EditorState
+      setEditorState(newEditorState);
     } else {
       setEditorState(editorState);
     }
